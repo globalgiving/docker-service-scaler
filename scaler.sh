@@ -29,6 +29,7 @@ do
         PUBLISH="--publish $P ${PUBLISH}"
       done
     fi
+    echo "Creating ${SERVICE_NAME}"
     docker service create --name "${SERVICE_NAME}" --replicas "${SERVICE_REPLICAS}" --constraint "engine.labels.network==${SERVICE_NETWORK}" --placement-pref 'spread=engine.labels.availability_zone' --mode "${SERVICE_MODE}" ${SERVICE_MOUNT} ${PUBLISH} ${SERVICE_IMAGE}
   else
     docker service scale "${SERVICE_NAME}=${SERVICE_REPLICAS}"
