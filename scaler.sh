@@ -58,7 +58,7 @@ do
 
     if ! [[ "${SERVICE_CONSTRAINT}" = "none" ]]
     then
-      CONSTRAINT="--constraint \"${SERVICE_CONSTRAINT}\""
+      CONSTRAINT="--constraint ${SERVICE_CONSTRAINT}"
     fi
 
     echo "Creating ${SERVICE_NAME}"
