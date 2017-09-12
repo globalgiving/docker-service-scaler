@@ -1,7 +1,7 @@
 #!/bin/bash - 
 
 DATA="$(aws dynamodb scan --region "${AWS_REGION}" --table-name "${DYNAMODB_TABLE}")"
-for I in `echo ${DATA} | jq -rc '.Items[] | {name: .name.S, replicas: .replicas.N, mounts: [.mounts.L[] | .S], mode: .mode.S, image: .image.S, networks: [.networks.L[] | .S], ports: [.ports.L[] | .S], hosts: [.hosts.L[] | .S], memory: .memory.N, cpu: .cpu.N, constraint: .constraint.S, image_private: .image_private.BOOL | tostring}'`;
+for I in `echo ${DATA} | jq -rc '.Items[] | {name: .name.S, replicas: .replicas.N, env: [.env.L[] | .S], mounts: [.mounts.L[] | .S], mode: .mode.S, image: .image.S, networks: [.networks.L[] | .S], ports: [.ports.L[] | .S], hosts: [.hosts.L[] | .S], memory: .memory.N, cpu: .cpu.N, constraint: .constraint.S, image_private: .image_private.BOOL | tostring}'`;
 do
   SERVICE_NAME="$(echo "$I" | jq -r '.name')"
   SERVICE_REPLICAS="$(echo "$I" | jq -r '.replicas')"
@@ -18,6 +18,7 @@ do
     SERVICE_CPU="$(echo "$I" | jq -r '.cpu')"
     SERVICE_MEMORY="$(echo "$I" | jq -r '.memory')"
     SERVICE_HOSTS="$(echo "$I" | jq -r '.hosts[]')"
+    SERVICE_ENV="$(echo "$I" | jq -r '.env[]')"
     PUBLISH=""
     REGISTRY_AUTH=""
     RESERVE_MEMORY=""
@@ -26,6 +27,7 @@ do
     NETWORKS=""
     MOUNTS=""
     ADDHOSTS=""
+    PASS_ENV=""
 
     for M in `echo ${SERVICE_MOUNTS}`;
     do
@@ -35,6 +37,11 @@ do
     for P in `echo ${SERVICE_PORTS}`;
     do
       PUBLISH="--publish $P ${PUBLISH}"
+    done
+
+    for E in `echo ${SERVICE_ENV}`;
+    do
+      PASS_ENV="--env $E ${PUBLISH}"
     done
 
     if ! [[ "${SERVICE_HOSTS}" == "" ]]
@@ -72,7 +79,7 @@ do
     fi
 
     echo "Creating ${SERVICE_NAME}"
-    docker service create --name "${SERVICE_NAME}" --replicas "${SERVICE_REPLICAS}" ${RESERVE_MEMORY} ${RESERVE_CPU} ${CONSTRAINT} --placement-pref 'spread=engine.labels.availability_zone' --mode "${SERVICE_MODE}" ${MOUNTS} ${PUBLISH} ${NETWORKS} ${ADDHOSTS} ${REGISTRY_AUTH} ${SERVICE_IMAGE}
+    docker service create --name "${SERVICE_NAME}" --replicas "${SERVICE_REPLICAS}" ${RESERVE_MEMORY} ${RESERVE_CPU} ${CONSTRAINT} --placement-pref 'spread=engine.labels.availability_zone' --mode "${SERVICE_MODE}" ${PASS_ENV} ${MOUNTS} ${PUBLISH} ${NETWORKS} ${ADDHOSTS} ${REGISTRY_AUTH} ${SERVICE_IMAGE}
   else
     docker service scale "${SERVICE_NAME}=${SERVICE_REPLICAS}"
   fi
