@@ -41,17 +41,13 @@ do
 
     for E in `echo ${SERVICE_ENV}`;
     do
-      PASS_ENV="--env $E ${PUBLISH}"
+      PASS_ENV="--env $E ${PASS_ENV}"
     done
 
-    if ! [[ "${SERVICE_HOSTS}" == "" ]]
-    then
-      ADDHOSTS="--host"
-      for H in `echo ${SERVICE_HOSTS}`;
-      do
-        ADDHOSTS="${ADDHOSTS} $H"
-      done
-    fi
+    for H in `echo ${SERVICE_HOSTS}`;
+    do
+      ADDHOSTS="--host $H ${ADDHOSTS}"
+    done
 
     for N in `echo ${SERVICE_NETWORKS}`;
     do
