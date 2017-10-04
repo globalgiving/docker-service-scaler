@@ -11,6 +11,9 @@ echo "Logging into DockerHub"
 source /run/secrets/dockerhub
 docker login -u "${DOCKERHUB_USER}" -p "${DOCKERHUB_PASS}"
 
+# Run scaler right now
+/usr/bin/scaler.sh
+
 # start cron
 /usr/sbin/crond -f -l 9 -L /var/log/cron.log
 
