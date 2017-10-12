@@ -1,7 +1,7 @@
 #!/bin/bash - 
 
 DATA="$(aws dynamodb scan --region "${AWS_REGION}" --table-name "${DYNAMODB_TABLE}")"
-for I in `echo ${DATA} | jq -rc '.Items[] | {name: .name.S, replicas: .replicas.N, env: [.env.L[] | .S], mounts: [.mounts.L[] | .S], mode: .mode.S, image: .image.S, log_driver: .log_driver.S, log_opt: [.log_opt.L[] | .S], networks: [.networks.L[] | .S], ports: [.ports.L[] | .S], hosts: [.hosts.L[] | .S], memory: .memory.N, cpu: .cpu.N, constraint: .constraint.S, image_private: .image_private.BOOL | tostring}'`;
+for I in `echo ${DATA} | jq -rc '.Items[] | {name: .name.S, replicas: .replicas.N, env: [.env.L[] | .S], mounts: [.mounts.L[] | .S], mode: .mode.S, image: .image.S, health_cmd: .health_cmd.S // "none", log_driver: .log_driver.S, log_opt: [.log_opt.L[] | .S], networks: [.networks.L[] | .S], ports: [.ports.L[] | .S], hosts: [.hosts.L[] | .S], memory: .memory.N, cpu: .cpu.N, constraint: .constraint.S, image_private: .image_private.BOOL | tostring}'`;
 do
   SERVICE_NAME="$(echo "$I" | jq -r '.name')"
   SERVICE_REPLICAS="$(echo "$I" | jq -r '.replicas')"
@@ -21,6 +21,7 @@ do
     SERVICE_ENV="$(echo "$I" | jq -r '.env[]')"
     SERVICE_LOG_DRIVER="$(echo "$I" | jq -r '.log_driver')"
     SERVICE_LOG_OPT="$(echo "$I" | jq -r '.log_opt[]')"
+    SERVICE_HEALTH_CMD="$(echo "$I" | jq -r '.health_cmd')"
     PUBLISH=""
     REGISTRY_AUTH=""
     RESERVE_MEMORY=""
@@ -32,6 +33,7 @@ do
     PASS_ENV=""
     LOG_DRIVER=""
     LOG_OPT=""
+    HEALTH_CMD=""
 
     if [[ "${SERVICE_LOG_DRIVER}" != "none" ]]; then
       LOG_DRIVER="--log-driver ${SERVICE_LOG_DRIVER}"
@@ -67,6 +69,10 @@ do
       NETWORKS="--network $N ${NETWORKS}"
     done
 
+    if [[ "${SERVICE_HEALTH_CMD}" != "none" ]]; then
+      HEALTH_CMD='--health-cmd "'${SERVICE_HEALTH_CMD}'"'
+    fi
+
     if [[ "${SERVICE_IMAGE_PRIVATE}" == "true" ]]
     then
       REGISTRY_AUTH="--with-registry-auth"
@@ -88,7 +94,7 @@ do
     fi
 
     echo "Creating ${SERVICE_NAME}"
-    docker service create --name "${SERVICE_NAME}" --replicas "${SERVICE_REPLICAS}" ${RESERVE_MEMORY} ${RESERVE_CPU} ${CONSTRAINT} --placement-pref 'spread=engine.labels.availability_zone' --mode "${SERVICE_MODE}" ${PASS_ENV} ${MOUNTS} ${LOG_DRIVER} ${LOG_OPT} ${PUBLISH} ${NETWORKS} ${ADDHOSTS} ${REGISTRY_AUTH} ${SERVICE_IMAGE}
+    docker service create --name "${SERVICE_NAME}" --replicas "${SERVICE_REPLICAS}" ${RESERVE_MEMORY} ${RESERVE_CPU} ${CONSTRAINT} --placement-pref 'spread=engine.labels.availability_zone' --mode "${SERVICE_MODE}" ${PASS_ENV} ${MOUNTS} ${HEALTH_CMD} ${LOG_DRIVER} ${LOG_OPT} ${PUBLISH} ${NETWORKS} ${ADDHOSTS} ${REGISTRY_AUTH} ${SERVICE_IMAGE}
   else
     docker service scale "${SERVICE_NAME}=${SERVICE_REPLICAS}"
   fi
