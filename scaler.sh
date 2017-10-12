@@ -1,8 +1,9 @@
 #!/bin/bash - 
 
 DATA="$(aws dynamodb scan --region "${AWS_REGION}" --table-name "${DYNAMODB_TABLE}")"
-for I in `echo ${DATA} | jq -rc '.Items[] | {name: .name.S, replicas: .replicas.N, env: [.env.L[] | .S], mounts: [.mounts.L[] | .S], mode: .mode.S, image: .image.S, health_cmd: (.health_cmd.S // "none"), log_driver: .log_driver.S, log_opt: [.log_opt.L[] | .S], networks: [.networks.L[] | .S], ports: [.ports.L[] | .S], hosts: [.hosts.L[] | .S], memory: .memory.N, cpu: .cpu.N, constraint: .constraint.S, image_private: .image_private.BOOL | tostring}'`;
-do
+PARSED=$(echo "${DATA}" | jq -rc '.Items[] | {name: .name.S, replicas: .replicas.N, env: [.env.L[] | .S], mounts: [.mounts.L[] | .S], mode: .mode.S, image: .image.S, health_cmd: (.health_cmd.S // "none"), log_driver: .log_driver.S, log_opt: [.log_opt.L[] | .S], networks: [.networks.L[] | .S], ports: [.ports.L[] | .S], hosts: [.hosts.L[] | .S], memory: .memory.N, cpu: .cpu.N, constraint: .constraint.S, image_private: .image_private.BOOL | tostring} | tostring | @sh')
+eval "SERVICE_ARRAY=(${PARSED})"
+for I in "${SERVICE_ARRAY[@]}"; do
   SERVICE_NAME="$(echo "$I" | jq -r '.name')"
   SERVICE_REPLICAS="$(echo "$I" | jq -r '.replicas')"
   EXISTS=$(docker service ls --filter "name=${SERVICE_NAME}" --format "{{.ID}}" | wc -l)
@@ -34,6 +35,7 @@ do
     LOG_DRIVER=""
     LOG_OPT=""
     HEALTH_CMD=""
+    HEALTH_CMD_CMD=""
 
     if [[ "${SERVICE_LOG_DRIVER}" != "none" ]]; then
       LOG_DRIVER="--log-driver ${SERVICE_LOG_DRIVER}"
@@ -70,7 +72,8 @@ do
     done
 
     if [[ "${SERVICE_HEALTH_CMD}" != "none" ]]; then
-      HEALTH_CMD='--health-cmd "'${SERVICE_HEALTH_CMD}'"'
+      HEALTH_CMD="--health-cmd"
+      HEALTH_CMD_CMD="${SERVICE_HEALTH_CMD}"
     fi
 
     if [[ "${SERVICE_IMAGE_PRIVATE}" == "true" ]]
@@ -94,7 +97,7 @@ do
     fi
 
     echo "Creating ${SERVICE_NAME}"
-    docker service create --name "${SERVICE_NAME}" --replicas "${SERVICE_REPLICAS}" ${RESERVE_MEMORY} ${RESERVE_CPU} ${CONSTRAINT} --placement-pref 'spread=engine.labels.availability_zone' --mode "${SERVICE_MODE}" ${PASS_ENV} ${MOUNTS} ${HEALTH_CMD} ${LOG_DRIVER} ${LOG_OPT} ${PUBLISH} ${NETWORKS} ${ADDHOSTS} ${REGISTRY_AUTH} ${SERVICE_IMAGE}
+    docker service create --name "${SERVICE_NAME}" --replicas "${SERVICE_REPLICAS}" ${RESERVE_MEMORY} ${RESERVE_CPU} ${CONSTRAINT} --placement-pref 'spread=engine.labels.availability_zone' --mode "${SERVICE_MODE}" ${PASS_ENV} ${MOUNTS} ${HEALTH_CMD} "${HEALTH_CMD_CMD}" ${LOG_DRIVER} ${LOG_OPT} ${PUBLISH} ${NETWORKS} ${ADDHOSTS} ${REGISTRY_AUTH} ${SERVICE_IMAGE}
   else
     docker service scale "${SERVICE_NAME}=${SERVICE_REPLICAS}"
   fi
