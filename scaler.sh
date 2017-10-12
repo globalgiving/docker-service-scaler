@@ -35,7 +35,7 @@ for I in "${SERVICE_ARRAY[@]}"; do
     LOG_DRIVER=""
     LOG_OPT=""
     HEALTH_CMD=""
-    HEALTH_CMD_CMD=""
+    HEALTH_CMD_CMD="-d"
 
     if [[ "${SERVICE_LOG_DRIVER}" != "none" ]]; then
       LOG_DRIVER="--log-driver ${SERVICE_LOG_DRIVER}"
