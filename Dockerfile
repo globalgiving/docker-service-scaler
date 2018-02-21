@@ -1,4 +1,4 @@
-FROM alpine:3.6
+FROM alpine:3.7
 RUN apk add --update bash ca-certificates jq groff python py-pip py-setuptools curl \
      && pip install awscli \
      && pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz \
