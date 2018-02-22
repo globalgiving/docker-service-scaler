@@ -1,7 +1,7 @@
 #!/bin/bash - 
 
 DATA="$(aws dynamodb scan --region "${AWS_REGION}" --table-name "${DYNAMODB_TABLE}")"
-PARSED=$(echo "${DATA}" | jq -rc '.Items[] | {name: .name.S, replicas: .replicas.N, env: [.env.L[] | .S], mounts: [.mounts.L[] | .S], mode: .mode.S, image: .image.S, secrets: [.secrets.L[] | .S], clabels: (.container_labels.M // {}) | to_entries | map_values(. = .key + "=" +  ([39] | implode) + .value.S +  ([39] | implode)), health_cmd: (.health_cmd.S // "none"), log_driver: .log_driver.S, log_opt: [.log_opt.L[] | .S], networks: [.networks.L[] | .S], ports: [.ports.L[] | .S], hosts: [.hosts.L[] | .S], memory: .memory.N, cpu: .cpu.N, constraint: .constraint.S, image_private: .image_private.BOOL | tostring} | tostring | @sh')
+PARSED=$(echo "${DATA}" | jq -rc '.Items[] | {name: .name.S, replicas: .replicas.N, env: [.env.L[] | .S], mounts: [.mounts.L[] | .S], mode: .mode.S, image: .image.S, secrets: [.secrets.L[] | .S], clabels: (.container_labels.M // {}) | to_entries | map_values(. = .key + "=" + .value.S), health_cmd: (.health_cmd.S // "none"), log_driver: .log_driver.S, log_opt: [.log_opt.L[] | .S], networks: [.networks.L[] | .S], ports: [.ports.L[] | .S], hosts: [.hosts.L[] | .S], memory: .memory.N, cpu: .cpu.N, constraint: .constraint.S, image_private: .image_private.BOOL | tostring} | tostring | @sh')
 eval "SERVICE_ARRAY=(${PARSED})"
 for I in "${SERVICE_ARRAY[@]}"; do
   SERVICE_NAME="$(echo "$I" | jq -r '.name')"
