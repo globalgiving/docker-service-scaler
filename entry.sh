@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # set system wide env variables, so they are available to ssh connections
 /usr/bin/env > /etc/environment
@@ -8,6 +8,7 @@ echo "Initialize logging for scaler daemon"
 ln -s /proc/1/fd/1 /var/log/docker/scaler.log
 
 echo "Logging into DockerHub"
+# shellcheck disable=SC1091
 source /run/secrets/dockerhub
 docker login -u "${DOCKERHUB_USER}" -p "${DOCKERHUB_PASS}"
 
