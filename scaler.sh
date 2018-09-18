@@ -111,7 +111,8 @@ for I in "${SERVICE_ARRAY[@]}"; do
     fi
 
     echo "Creating ${SERVICE_NAME}"
-    docker service create --name "${SERVICE_NAME}" --replicas "${SERVICE_REPLICAS}" ${RESERVE_MEMORY} ${RESERVE_CPU} ${CONSTRAINT} --placement-pref 'spread=engine.labels.availability_zone' --mode "${SERVICE_MODE}" ${PASS_ENV} ${CONTAINER_LABELS} ${MOUNTS} ${HEALTH_CMD} "${HEALTH_CMD_CMD}" ${LOG_DRIVER} ${LOG_OPT} ${PUBLISH} ${NETWORKS} ${SECRETS} ${ADDHOSTS} ${REGISTRY_AUTH} ${SERVICE_IMAGE}
+    # shellcheck disable=SC2086
+    docker service create --name "${SERVICE_NAME}" --replicas "${SERVICE_REPLICAS}" --health-start-period 3m --update-order "start-first" ${RESERVE_MEMORY} ${RESERVE_CPU} ${CONSTRAINT} --placement-pref 'spread=engine.labels.availability_zone' --mode "${SERVICE_MODE}" ${PASS_ENV} ${CONTAINER_LABELS} ${MOUNTS} ${HEALTH_CMD} "${HEALTH_CMD_CMD}" ${LOG_DRIVER} ${LOG_OPT} ${PUBLISH} ${NETWORKS} ${SECRETS} ${ADDHOSTS} ${REGISTRY_AUTH} ${SERVICE_IMAGE}
   else
     docker service scale "${SERVICE_NAME}=${SERVICE_REPLICAS}"
   fi
